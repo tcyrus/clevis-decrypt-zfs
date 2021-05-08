@@ -57,8 +57,6 @@ func DecryptTang(msg *jwe.Message, clevisNode map[string]interface{}) ([]byte, e
 		D: big.NewInt(1),
 	}
 
-	//identityKey.PublicKey.X, identityKey.PublicKey.Y = identityKey.PublicKey.Curve.ScalarBaseMult(identityKey.D.Bytes())
-
 	return msg.Decrypt(jwa.ECDH_ES, &identityKey)
 }
 
