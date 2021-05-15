@@ -13,36 +13,42 @@ func main() {
     log.Fatalf("Usage: %s DATASET", os.Args[0])
   }
 
-  var dataset string
-  dataset = os.Args[1]
+  var datasetPath string
+  datasetPath = os.Args[1]
 
-  decryptProp, err := zfs.GetProp(dataset, "latchset.clevis:decrypt", "local")
+  dataset, err := zfs.DatasetOpen(datasetPath)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer dataset.Close()
+
+  prop, err := dataset.GetUserProperty("latchset.clevis:decrypt")
   if err != nil {
     log.Fatal(err)
   }
 
-  if (string(decryptProp) != "yes") {
-    log.Fatalf("%s dataset does not support clevis-like decryption: %q", dataset, decryptProp)
+  if (prop.Value != "yes") {
+    log.Fatalf("%s dataset does not support clevis-like decryption: %s", datasetPath, prop.Value)
   }
 
-  keystat, err := zfs.GetProp(dataset, "keystatus", "none")
+  prop, err = dataset.GetKeyStatus()
   if err != nil {
     log.Fatal(err)
   }
 
-  load_noop := (string(keystat) != "unavailable")
+  load_noop := (prop.Value != "unavailable")
 
-  jwe, err := zfs.GetProp(dataset, "latchset.clevis:jwe", "local")
+  prop, err = dataset.GetUserProperty("latchset.clevis:jwe")
   if err != nil {
     log.Fatal(err)
   }
 
-  key, err := clevis.Decrypt(jwe)
+  key, err := clevis.Decrypt([]byte(prop.Value))
   if err != nil {
     log.Fatal(err)
   }
 
-  res, err := zfs.LoadKey(dataset, load_noop, key)
+  res, err := dataset.LoadKey(load_noop, key)
   if err != nil {
     log.Fatal(err)
   }
